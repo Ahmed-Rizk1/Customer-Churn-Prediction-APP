@@ -4,10 +4,8 @@ No API required! This loads the model directly.
 """
 
 import streamlit as st
-import pickle
+import requests
 import json
-import pandas as pd
-import numpy as np
 import os
 
 # ── Page setup ─────────────────────────────────────────────────────────────
@@ -17,37 +15,17 @@ st.set_page_config(
     layout="centered",
 )
 
-# ── Load Model Artifacts ───────────────────────────────────────────────────
-# In Hugging Face Spaces, all files are usually in the same root folder.
-@st.cache_resource
-def load_models():
+# ── Backend API Setup ──────────────────────────────────────────────────────
+# Set your deployed Render API URL here
+API_URL = os.environ.get("BACKEND_API_URL", "https://your-render-backend-url.onrender.com")
+
+def predict_churn(payload: dict):
     try:
-        with open("model.pkl", "rb") as f:
-            model = pickle.load(f)
-        with open("encoder.pkl", "rb") as f:
-            encoder = pickle.load(f)
-        with open("model_metadata.json") as f:
-            metadata = json.load(f)
-        return model, encoder, metadata
-    except FileNotFoundError:
-        return None, None, None
-
-model, encoder, metadata = load_models()
-
-# ── Preprocessing ──────────────────────────────────────────────────────────
-CAT_FEATURES = ["gender", "subscription_type", "contract_length"]
-
-def preprocess(raw: dict) -> np.ndarray:
-    df = pd.DataFrame([raw])
-    encoded = encoder.transform(df[CAT_FEATURES])
-    encoded_df = pd.DataFrame(encoded, columns=encoder.get_feature_names_out(CAT_FEATURES))
-    
-    numeric_cols = [c for c in df.columns if c not in CAT_FEATURES]
-    X = pd.concat([df[numeric_cols].reset_index(drop=True), encoded_df], axis=1)
-    
-    # Reorder columns to match training exactly
-    X = X.reindex(columns=metadata["features"], fill_value=0)
-    return X.values
+        response = requests.post(f"{API_URL}/predict", json=payload)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        return {"error": str(e)}
 
 # ── Inject CSS ─────────────────────────────────────────────────────────────
 st.markdown("""
@@ -77,11 +55,7 @@ st.markdown("""
 </p>
 """, unsafe_allow_html=True)
 
-if model is not None:
-    model_name = metadata.get("model_type", "RandomForest")
-    st.markdown(f"<span class='status-ok'>● Model Loaded Successfully: {model_name}</span>", unsafe_allow_html=True)
-else:
-    st.markdown("<span class='status-err'>● Model files not found! Please upload model.pkl, encoder.pkl, and model_metadata.json</span>", unsafe_allow_html=True)
+st.markdown(f"<span class='status-ok'>● Configured to use Backend API: {API_URL}</span>", unsafe_allow_html=True)
 
 st.markdown("<hr>", unsafe_allow_html=True)
 
@@ -110,38 +84,35 @@ st.markdown("<hr>", unsafe_allow_html=True)
 
 # ── Submit ────────────────────────────────────────────────────────────────────
 if st.button("PREDICT CHURN"):
-    if model is None:
-        st.error("❌ Cannot predict — Model artifacts are missing.")
-    else:
-        payload = {
-            "age": age, "tenure": tenure, "usage_frequency": usage_frequency,
-            "support_calls": support_calls, "payment_delay": payment_delay,
-            "total_spend": total_spend, "last_interaction": last_interaction,
-            "gender": gender, "subscription_type": subscription_type,
-            "contract_length": contract_length,
-        }
+    payload = {
+        "age": age, "tenure": tenure, "usage_frequency": usage_frequency,
+        "support_calls": support_calls, "payment_delay": payment_delay,
+        "total_spend": total_spend, "last_interaction": last_interaction,
+        "gender": gender, "subscription_type": subscription_type,
+        "contract_length": contract_length,
+    }
 
-        with st.spinner("Running prediction..."):
-            try:
-                # Run prediction directly instead of API call
-                X = preprocess(payload)
-                pred = int(model.predict(X)[0])
-                prob = float(model.predict_proba(X)[0][1])
+    with st.spinner("Calling Backend API..."):
+        result = predict_churn(payload)
+        
+        if "error" in result:
+            st.error(f"Prediction failed: Cannot connect to the API. {result['error']}")
+        else:
+            pred = result["prediction"]
+            prob = result["probability"]
 
-                label = "Will Churn" if pred == 1 else "Will Stay"
-                card_class = "result-card" if pred == 1 else "result-card safe"
-                icon = "⚠️" if pred == 1 else "✅"
-                detail = "This customer shows high churn risk." if pred == 1 else "This customer is likely to stay."
+            label = "Will Churn" if pred == 1 else "Will Stay"
+            card_class = "result-card" if pred == 1 else "result-card safe"
+            icon = "⚠️" if pred == 1 else "✅"
+            detail = "This customer shows high churn risk." if pred == 1 else "This customer is likely to stay."
 
-                st.markdown(f"""
-                <div class='{card_class}'>
-                    <div class='result-label'>{icon} {label}</div>
-                    <div class='result-prob'>
-                        Churn probability: <strong>{prob:.1%}</strong>
-                    </div>
-                    <p style='margin-top:0.6rem; color:#444; font-size:0.9rem;'>{detail}</p>
+            st.markdown(f"""
+            <div class='{card_class}'>
+                <div class='result-label'>{icon} {label}</div>
+                <div class='result-prob'>
+                    Churn probability: <strong>{prob:.1%}</strong>
                 </div>
-                """, unsafe_allow_html=True)
-
-            except Exception as e:
-                st.error(f"Prediction failed: {e}")
+                <p style='margin-top:0.6rem; color:#444; font-size:0.9rem;'>{detail}</p>
+                <p style='margin-top:0.6rem; color:#888; font-size:0.75rem;'>Model: {result.get('model', 'API')}</p>
+            </div>
+            """, unsafe_allow_html=True)
