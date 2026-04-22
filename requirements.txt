@@ -8,14 +8,10 @@
 #  Install: uv pip install -r requirements.txt
 # ============================================================
 
-# --- Data Science (notebooks) ---
+# --- Data Science (Inference) ---
 numpy==1.26.4
 pandas==2.2.2
 scikit-learn==1.4.2
-xgboost==2.0.3
-seaborn==0.13.2
-matplotlib==3.8.4
-pillow==10.3.0          # matplotlib image backend; must be <11 for streamlit compat
 
 # --- FastAPI backend (project/app/main.py) ---
 fastapi==0.111.0
