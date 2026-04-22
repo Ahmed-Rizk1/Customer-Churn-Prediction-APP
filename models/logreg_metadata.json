@@ -1,5 +1,5 @@
 {
-  "model_type": "RandomForestClassifier",
+  "model_type": "Logistic Regression",
   "features": [
     "age",
     "tenure",
@@ -22,11 +22,11 @@
     "subscription_type",
     "contract_length"
   ],
-  "needs_scaling": false,
+  "needs_scaling": true,
   "metrics": {
-    "accuracy": 0.9516,
-    "precision": 0.9432,
-    "recall": 0.9618,
-    "f1": 0.9524
+    "accuracy": 0.8493,
+    "precision": 0.8734,
+    "recall": 0.852,
+    "f1": 0.8626
   }
 }

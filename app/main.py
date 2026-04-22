@@ -41,6 +41,7 @@ MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
 
 model = None
 encoder = None
+scaler = None
 feature_names = None
 metadata = None
 
@@ -52,18 +53,21 @@ def load_artifacts():
     even when .pkl files are not bundled. Prediction endpoints will return
     a 503 instead of crashing the whole process.
     """
-    global model, encoder, feature_names, metadata
+    global model, encoder, scaler, feature_names, metadata
 
     print("Loading model artifacts...")
 
     try:
-        with open(MODELS_DIR / "model.pkl", "rb") as f:
+        with open(MODELS_DIR / "logreg_model.pkl", "rb") as f:
             model = pickle.load(f)
 
         with open(MODELS_DIR / "encoder.pkl", "rb") as f:
             encoder = pickle.load(f)
 
-        with open(MODELS_DIR / "model_metadata.json") as f:
+        with open(MODELS_DIR / "scaler.pkl", "rb") as f:
+            scaler = pickle.load(f)
+
+        with open(MODELS_DIR / "logreg_metadata.json") as f:
             metadata = json.load(f)
 
         feature_names = metadata["features"]
@@ -171,6 +175,10 @@ def preprocess(raw: dict) -> np.ndarray:
 
     # 3. Reorder to match training column order (critical!)
     X = X.reindex(columns=feature_names, fill_value=0)
+
+    if metadata.get("needs_scaling", False) and scaler is not None:
+        X_scaled = scaler.transform(X)
+        return X_scaled
 
     return X.values
 

@@ -26,6 +26,10 @@ models/*.pkl
 models/*.bin
 models/*.joblib
 !models/.gitkeep
+!models/logreg_model.pkl
+!models/encoder.pkl
+!models/scaler.pkl
+!models/feature_names.pkl
 
 # Jupyter
 .ipynb_checkpoints/
