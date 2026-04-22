@@ -46,24 +46,35 @@ metadata = None
 
 
 def load_artifacts():
-    """Load all model artifacts from the models/ folder."""
+    """Load all model artifacts from the models/ folder.
+
+    Wrapped in try/except so the app starts cleanly on Vercel/serverless
+    even when .pkl files are not bundled. Prediction endpoints will return
+    a 503 instead of crashing the whole process.
+    """
     global model, encoder, feature_names, metadata
 
     print("Loading model artifacts...")
 
-    with open(MODELS_DIR / "model.pkl", "rb") as f:
-        model = pickle.load(f)
+    try:
+        with open(MODELS_DIR / "model.pkl", "rb") as f:
+            model = pickle.load(f)
 
-    with open(MODELS_DIR / "encoder.pkl", "rb") as f:
-        encoder = pickle.load(f)
+        with open(MODELS_DIR / "encoder.pkl", "rb") as f:
+            encoder = pickle.load(f)
 
-    with open(MODELS_DIR / "model_metadata.json") as f:
-        metadata = json.load(f)
+        with open(MODELS_DIR / "model_metadata.json") as f:
+            metadata = json.load(f)
 
-    feature_names = metadata["features"]
+        feature_names = metadata["features"]
 
-    print(f"✅ Model loaded: {metadata['model_type']}")
-    print(f"   Accuracy: {metadata['metrics']['accuracy']:.4f} | F1: {metadata['metrics']['f1']:.4f}")
+        print(f"✅ Model loaded: {metadata['model_type']}")
+        print(f"   Accuracy: {metadata['metrics']['accuracy']:.4f} | F1: {metadata['metrics']['f1']:.4f}")
+
+    except FileNotFoundError as e:
+        print(f"⚠️  Model artifacts not found: {e}")
+        print("   API will start but /predict endpoints will return 503.")
+        print("   Upload model files to the models/ directory to enable predictions.")
 
 
 # ── Startup / Shutdown ───────────────────────────────────────────────────────
@@ -169,6 +180,13 @@ def preprocess(raw: dict) -> np.ndarray:
 @app.get("/", tags=["Health"])
 def health():
     """Is the API alive? What model is loaded?"""
+    if metadata is None:
+        return {
+            "status": "degraded",
+            "model": None,
+            "version": "1.0.0",
+            "detail": "Model artifacts not loaded — predictions unavailable.",
+        }
     return {
         "status": "ok",
         "model": metadata["model_type"],
@@ -192,6 +210,11 @@ def predict(customer: CustomerInput):
     - **probability**: chance of churning (0.0 – 1.0)
     - **label**: human-readable result
     """
+    if model is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not loaded. Upload model artifacts to the models/ directory.",
+        )
     try:
         X = preprocess(customer.model_dump())
 
@@ -212,6 +235,11 @@ def predict(customer: CustomerInput):
 @app.post("/predict-batch", tags=["Prediction"])
 def predict_batch(customers: List[CustomerInput]):
     """Predict churn for a list of customers in one call."""
+    if model is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not loaded. Upload model artifacts to the models/ directory.",
+        )
     results = []
     for c in customers:
         X = preprocess(c.model_dump())
@@ -223,3 +251,8 @@ def predict_batch(customers: List[CustomerInput]):
             "label": "Will Churn" if pred == 1 else "Will Stay",
         })
     return {"count": len(results), "results": results}
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=5000, reload=True)
