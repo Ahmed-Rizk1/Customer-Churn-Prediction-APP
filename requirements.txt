@@ -1,0 +1,28 @@
+# ============================================================
+#  MLP Practical — All-in-one requirements
+#  Works for: 01_EDA_and_Modelling.ipynb
+#             02_From_Model_to_Production.ipynb
+#             project/app/main.py  (FastAPI backend)
+#
+#  Python: 3.11.x  (use: uv venv --python 3.11)
+#  Install: uv pip install -r requirements.txt
+# ============================================================
+
+# --- Data Science (notebooks) ---
+numpy==1.26.4
+pandas==2.2.2
+scikit-learn==1.4.2
+xgboost==2.0.3
+seaborn==0.13.2
+matplotlib==3.8.4
+pillow==10.3.0          # matplotlib image backend; must be <11 for streamlit compat
+
+# --- FastAPI backend (project/app/main.py) ---
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+pydantic==2.7.1
+python-multipart==0.0.9
+
+# --- Streamlit frontend (project/frontend) ---
+streamlit==1.34.0
+requests==2.31.0

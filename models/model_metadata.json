@@ -1,0 +1,32 @@
+{
+  "model_type": "RandomForestClassifier",
+  "features": [
+    "age",
+    "tenure",
+    "usage_frequency",
+    "support_calls",
+    "payment_delay",
+    "total_spend",
+    "last_interaction",
+    "gender_Female",
+    "gender_Male",
+    "subscription_type_Basic",
+    "subscription_type_Premium",
+    "subscription_type_Standard",
+    "contract_length_Annual",
+    "contract_length_Monthly",
+    "contract_length_Quarterly"
+  ],
+  "categorical_features": [
+    "gender",
+    "subscription_type",
+    "contract_length"
+  ],
+  "needs_scaling": false,
+  "metrics": {
+    "accuracy": 0.9516,
+    "precision": 0.9432,
+    "recall": 0.9618,
+    "f1": 0.9524
+  }
+}
