@@ -16,8 +16,8 @@ st.set_page_config(
 )
 
 # ── Backend API Setup ──────────────────────────────────────────────────────
-# Set your deployed Render API URL here
-API_URL = os.environ.get("BACKEND_API_URL", "https://your-render-backend-url.onrender.com")
+# Set your deployed Render API URL here or use localhost for local testing
+API_URL = os.environ.get("BACKEND_API_URL", "http://localhost:5000")
 
 def predict_churn(payload: dict):
     try:
