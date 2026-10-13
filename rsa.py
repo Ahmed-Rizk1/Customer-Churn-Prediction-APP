@@ -6,6 +6,7 @@ def egcd(a, b):
     g, y, x = egcd(b % a, a)
     return g, x - (b // a) * y, y
 
+
 # Modular Inverse
 def modinv(a, m):
     g, x, y = egcd(a, m)
