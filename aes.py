@@ -8,8 +8,7 @@ RCON = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36]
 def sub_bytes(state, inv=False):
     box = INV_SBOX_AES if inv else SBOX_AES
     for i in range(16): state[i] = box[state[i]]
-
-
+    
 
 def shift_rows(s, inv=False):
     if not inv:
