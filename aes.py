@@ -9,6 +9,8 @@ def sub_bytes(state, inv=False):
     box = INV_SBOX_AES if inv else SBOX_AES
     for i in range(16): state[i] = box[state[i]]
 
+
+
 def shift_rows(s, inv=False):
     if not inv:
         s[1], s[5], s[9], s[13] = s[5], s[9], s[13], s[1]
